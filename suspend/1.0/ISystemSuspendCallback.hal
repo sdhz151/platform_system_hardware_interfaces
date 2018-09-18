@@ -16,16 +16,12 @@
 
 package android.system.suspend@1.0;
 
-/**
- * Allocating an IWakeLock instance must block system suspend. Deallocating an
- * IWakeLock must unblock system suspend in a manner equivalent to calling
- * IWakeLock::release().
- */
-interface IWakeLock {
+interface ISystemSuspendCallback {
     /**
-     *  Releases IWakeLock instance. This method only has effect first time its
-     *  called. Subsequent calls must result in no-ops. If no unreleased wake
-     *  lock is present, system is allowed to suspend.
+     * An implementation of ISystemSuspend must call notifyWakeup after every
+     * system wakeup.
+     *
+     * @param success whether previous system suspend attempt was successful.
      */
-    oneway release();
+    notifyWakeup(bool success);
 };
