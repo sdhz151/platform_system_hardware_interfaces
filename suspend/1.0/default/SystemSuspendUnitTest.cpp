@@ -49,6 +49,8 @@ using android::system::suspend::V1_0::ISystemSuspendCallback;
 using android::system::suspend::V1_0::IWakeLock;
 using android::system::suspend::V1_0::readFd;
 using android::system::suspend::V1_0::SystemSuspend;
+using android::system::suspend::V1_0::WakeLockType;
+using namespace std::chrono_literals;
 
 namespace android {
 
@@ -78,8 +80,8 @@ class SystemSuspendTestEnvironment : public ::testing::Environment {
     void registerTestService() {
         std::thread testService([this] {
             configureRpcThreadpool(1, true /* callerWillJoin */);
-            sp<ISystemSuspend> suspend =
-                new SystemSuspend(std::move(wakeupCountFds[1]), std::move(stateFds[1]));
+            sp<ISystemSuspend> suspend = new SystemSuspend(
+                std::move(wakeupCountFds[1]), std::move(stateFds[1]), 0ms /* baseSleepTime */);
             status_t status = suspend->registerAsService(kServiceName);
             if (android::OK != status) {
                 LOG(FATAL) << "Unable to register service: " << status;
@@ -131,7 +133,9 @@ class SystemSuspendTest : public ::testing::Test {
 
     bool isSystemSuspendBlocked() { return isReadBlocked(stateFd); }
 
-    sp<IWakeLock> acquireWakeLock() { return suspendService->acquireWakeLock("TestLock"); }
+    sp<IWakeLock> acquireWakeLock() {
+        return suspendService->acquireWakeLock(WakeLockType::PARTIAL, "TestLock");
+    }
 
     SystemSuspendStats getDebugDump() {
         // Index 0 corresponds to the read end of the pipe; 1 to the write end.
@@ -247,7 +251,7 @@ TEST_F(SystemSuspendTest, CleanupOnAbort) {
 // Test that debug dump has correct information about acquired WakeLocks.
 TEST_F(SystemSuspendTest, DebugDump) {
     {
-        sp<IWakeLock> wl = suspendService->acquireWakeLock("TestLock");
+        sp<IWakeLock> wl = acquireWakeLock();
         SystemSuspendStats debugDump = getDebugDump();
         ASSERT_EQ(debugDump.wake_lock_stats().size(), 1);
         ASSERT_EQ(debugDump.wake_lock_stats().begin()->second.name(), "TestLock");
