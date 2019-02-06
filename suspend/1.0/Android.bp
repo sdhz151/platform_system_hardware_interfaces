@@ -6,12 +6,11 @@ hidl_interface {
     },
     srcs: [
         "ISystemSuspend.hal",
-        "ISystemSuspendCallback.hal",
         "IWakeLock.hal",
+        "types.hal",
     ],
     interfaces: [
         "android.hidl.base@1.0",
     ],
     gen_java: false,
 }
-
